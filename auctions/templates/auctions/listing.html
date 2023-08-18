@@ -1,0 +1,17 @@
+{% extends "auctions/layout.html" %}
+
+{% block body %}
+    <h2>Listing Page</h2>
+    <form action="{% url 'add_to_watchlist' listing.id%}" method = "post">
+        {%csrf_token%}
+        <button class="btn btn-rounded btn-outline-primary">Add to watchlist</button>
+    </form>
+    <h3>{{ listing.title }}</h3>
+    <p>{{ listing.description }}</p>
+    <p>Owner: {{ listing.owner }}</p>
+    {% if listing.image %}
+        <img src="{{ listing.image.url }}" alt="{{ listing.title }} Image">
+    {% endif %}
+    <p>Price: {{ listing.price }}</p>
+    <p>Created At: {{ listing.created_at }}</p>
+{% endblock %}

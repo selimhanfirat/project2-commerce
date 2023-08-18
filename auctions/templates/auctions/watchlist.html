@@ -1,0 +1,9 @@
+{% extends "auctions/layout.html" %}
+
+{% block body %}
+
+    {% for listing in watchlist %}
+        {{listing.title}}
+        <br>
+    {%endfor%}
+{% endblock %}
