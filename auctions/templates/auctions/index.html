@@ -5,6 +5,7 @@
 
     <div class= "container-fluid">
         {% for listing in listings %}
+        {%if not listing.closed %}
         <div class = "row mb-3 border p-3">
             <div class = "col">
                 <img src="{{listing.image.url}}" alt="">
@@ -12,7 +13,12 @@
             <div class="col">
 
                 <a href="{%url 'listing' listing_id=listing.id %}"><h4> {{listing.title}} </h4></a>
-                <h6>Price: ${{listing.price}}</h5>
+                {% if listing.winning_bid %}
+                    <h6>Highest Bid: ${{ listing.winning_bid.amount }}</h5>
+                {% else %}
+                    <h6>Starting Price: ${{ listing.price }}</h5>
+                {% endif %}
+                
                 <p>{{ listing.description|truncatechars:128 }}</p>
                 <p class="small"><em>{{listing.created_at}}.</em></p>
             </div>
@@ -32,10 +38,9 @@
 
                 </div>
             </div>
-
             
             {% endif %}
-            
+        {%endif%}    
         </div>
         {% endfor %}
     </div>

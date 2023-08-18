@@ -14,16 +14,27 @@ class Listing(models.Model):
     image = models.ImageField(upload_to='listing_images')
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name = "listings")
     created_at = models.DateTimeField(auto_now_add=True)
-    
+    closed = models.BooleanField(default = False)
+    winning_bid = models.ForeignKey("Bid", null = True, blank = True, on_delete = models.SET_NULL, related_name= "won")
+    categories = models.ManyToManyField("Category", related_name="listings")
     def __str__(self):
         return self.title
+
+    
+class Category(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+    
+    
+ 
     
 
 class Bid(models.Model):
     amount = models.IntegerField()
-    bidder = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bids_made')  # Add related_name
-    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='bids')  # Add related_name
-    highest_bid = models.BooleanField(default=False)
+    bidder = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bids_made')  
+    listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='bids')
 
     def __str__(self):
         return f"Bid of {self.amount} by {self.bidder.username} on {self.listing.title}"

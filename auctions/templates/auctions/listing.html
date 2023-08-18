@@ -2,16 +2,57 @@
 
 {% block body %}
     <h2>Listing Page</h2>
-    <form action="{% url 'add_to_watchlist' listing.id%}" method = "post">
-        {%csrf_token%}
-        <button class="btn btn-rounded btn-outline-primary">Add to watchlist</button>
-    </form>
-    <h3>{{ listing.title }}</h3>
-    <p>{{ listing.description }}</p>
-    <p>Owner: {{ listing.owner }}</p>
-    {% if listing.image %}
+    
+    {% if not listing.closed %}
+
+        {% if user.is_authenticated %}
+        <form action="{% url 'add_to_watchlist' listing.id%}" method="post">
+            {% csrf_token %}
+            <button class="btn btn-rounded btn-outline-primary">Add to watchlist</button>
+        </form>
+
+        <form action="{% url 'bid' listing.id%}" method="post">
+            {% csrf_token %}
+            <input type="number" name="bid_amount">
+            <input type="submit" value="Submit!">
+        </form>
+        {% if listing.owner == user %}
+            <form action="{% url 'listing_close' listing.id%}" method="post">
+                {% csrf_token %}
+                <button class = "btn btn-large btn-outline-danger">Close Bidding</button>
+                <input type="submit" value="Submit!">
+            </form>
+        {%endif%}
+
+        {% endif %}
+
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <h3>{{ listing.title }}</h3>
+        <p>{{ listing.description }}</p>
+        <p>Owner: {{ listing.owner }}</p>
+
         <img src="{{ listing.image.url }}" alt="{{ listing.title }} Image">
+
+        {% if listing.winning_bid %}
+            <p>Highest Bid: ${{ listing.winning_bid.amount }}</p>
+        {% else %}
+            <p>Starting Price: ${{ listing.price }}</p>
+        {% endif %}
+        <p>Created At: {{ listing.created_at }}</p>
+
+    {% else %}
+        {% if not listing.winning_bid %}
+            Listing is closed, there are no winners
+        {% else %}
+            Winner is {{ listing.winning_bid.bidder }}
+        {% endif %}
+
     {% endif %}
-    <p>Price: {{ listing.price }}</p>
-    <p>Created At: {{ listing.created_at }}</p>
 {% endblock %}

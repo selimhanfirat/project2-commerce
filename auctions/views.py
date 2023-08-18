@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
 from datetime import datetime
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
@@ -6,7 +7,7 @@ from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django import forms
 from django.contrib.auth.decorators import login_required
-from .models import Listing
+from .models import Listing, Bid, Category
 from PIL import Image  # Import Pillow
 
 
@@ -17,6 +18,12 @@ class New_Listing_Form(forms.Form):
     title = forms.CharField(label="Title", required=True)
     description = forms.CharField(label="Product Description", required=True)
     price = forms.IntegerField(label="Starting Bid", required=True)
+    categories = forms.ModelMultipleChoiceField(
+        queryset=Category.objects.all(),
+        widget=forms.CheckboxSelectMultiple,
+        label="Select Categories",
+        required=False
+    )
     image = forms.ImageField(label="Product Photo", required=True)
 
 
@@ -131,6 +138,7 @@ def listing(request, listing_id):
         "listing": listing 
     })
 
+@login_required
 def add_to_watchlist(request, listing_id):
     if request.method == "POST":
         user = request.user
@@ -138,16 +146,66 @@ def add_to_watchlist(request, listing_id):
         
         if listing not in user.watchlist.all():
             user.watchlist.add(listing)
-            
+            user.save()
         
     return HttpResponseRedirect(reverse('watchlist', args=[user.id]))   
 
+@login_required
 def watchlist(request, user_id):
     user = User.objects.get(pk=user_id)
     return render(request, "auctions/watchlist.html", {
         "watchlist": user.watchlist.all()
     })
         
+@login_required
+def bid(request, listing_id):
+    if request.method == "POST":
+        user = request.user
+        listing = Listing.objects.get(pk=listing_id)
+        bid_amount = int(request.POST["bid_amount"])
+        
+        #handle the case where the owner bids on their own listing
+        if listing.owner == request.user:
+            messages.error(request, "You cannot bid on your own listing")
+            return HttpResponseRedirect(reverse('listing', args=[listing.id]))
+        
+
+        if bid_amount > listing.price:
+            # Create a new Bid instance
+            new_bid = Bid(amount=bid_amount, bidder=request.user, listing=listing)
+            new_bid.save()
+
+            # Update the winning_bid field in the Listing model
+            listing.winning_bid = new_bid
+            listing.save()
+            if listing not in user.watchlist.all():
+                user.watchlist.add(listing)
+                user.save()
+            return HttpResponseRedirect(reverse('listing', args=[listing.id]))
+        else:
+            messages.error(request, "Bid amount must be higher than the current highest bid.")
+            return HttpResponseRedirect(reverse('listing', args=[listing.id]))
+
+    return HttpResponseRedirect(reverse('listing', args=[listing_id]))
+
+
+@login_required
+def listing_close(request, listing_id):
+    if request.method == "POST":
+        listing = Listing.objects.get(pk = listing_id)
+        if listing.owner == request.user:
+            listing.closed = True
+            listing.save()
+            return HttpResponseRedirect(reverse('listing', args=[listing.id]))
+        else:
+            messages.error(request, "You cannot close this listing because it's not yours")
+            return HttpResponseRedirect(reverse('listing', args=[listing.id]))
+    else:
+        return HttpResponseRedirect(reverse('listing', args=[listing.id]))
+
+
+
+            
 
 def delete(request):
     # Retrieve all listings from the database
