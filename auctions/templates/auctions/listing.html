@@ -2,50 +2,62 @@
 
 {% block body %}
     <h2>Listing Page</h2>
-    
+        
     {% if not listing.closed %}
-
-        {% if user.is_authenticated %}
-        <form action="{% url 'add_to_watchlist' listing.id%}" method="post">
-            {% csrf_token %}
-            <button class="btn btn-rounded btn-outline-primary">Add to watchlist</button>
-        </form>
-
-        <form action="{% url 'bid' listing.id%}" method="post">
-            {% csrf_token %}
-            <input type="number" name="bid_amount">
-            <input type="submit" value="Submit!">
-        </form>
-        {% if listing.owner == user %}
-            <form action="{% url 'listing_close' listing.id%}" method="post">
-                {% csrf_token %}
-                <button class = "btn btn-large btn-outline-danger">Close Bidding</button>
-                <input type="submit" value="Submit!">
-            </form>
-        {%endif%}
-
-        {% endif %}
-
+    
         {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-                <li>{{ message }}</li>
-            {% endfor %}
-        </ul>
+            <ul class="messages">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
         {% endif %}
+    
+        <div class="container-fluid">
+            <div class="row">
+                
+                <div class="col">
+                    <img src="{{listing.larger_image.url}}" alt="">
+                </div>
+                
+                <div class="col">
+                    <h4>{{listing.title}}</h4>
+                    {% if listing.winning_bid %}
+                        <h6>Highest Bid: ${{ listing.winning_bid.amount }}</h6>
+                    {% else %}
+                        <h6>Starting Price: ${{ listing.price }}</h6>
+                    {% endif %}
+                    
+                    <p>{{ listing.description|truncatechars:128 }}</p>
+                    <p class="small"><em>{{listing.created_at}}.</em></p>
+                </div>
 
-        <h3>{{ listing.title }}</h3>
-        <p>{{ listing.description }}</p>
-        <p>Owner: {{ listing.owner }}</p>
+                {% if user.is_authenticated %}
+                    <div class="col">
+                        <form action="{% url 'add_to_watchlist' listing.id%}" method="post">
+                            {% csrf_token %}
+                            <button class="btn btn-rounded btn-outline-primary">Add to watchlist</button>
+                        </form>
+                        
+                        <form action="{% url 'bid' listing.id%}" method="post">
+                            {% csrf_token %}
+                            <h5>place your bid here</h5>
+                            <input type="text" name="bid_amount">
+                            <input type="submit">
+                        </form>
 
-        <img src="{{ listing.image.url }}" alt="{{ listing.title }} Image">
-
-        {% if listing.winning_bid %}
-            <p>Highest Bid: ${{ listing.winning_bid.amount }}</p>
-        {% else %}
-            <p>Starting Price: ${{ listing.price }}</p>
-        {% endif %}
-        <p>Created At: {{ listing.created_at }}</p>
+                        {% if listing.owner == user and user.is_authenticated %}
+                            <form action="{% url 'listing_close' listing.id%}" method="post">
+                                {% csrf_token %}
+                                <button class="btn btn-large btn-outline-danger" type="submit">Close Bidding</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                
+            </div>
+        </div>
 
     {% else %}
         {% if not listing.winning_bid %}
@@ -53,6 +65,5 @@
         {% else %}
             Winner is {{ listing.winning_bid.bidder }}
         {% endif %}
-
     {% endif %}
 {% endblock %}

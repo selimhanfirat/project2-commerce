@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from datetime import datetime
+from django.core.files import File
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
@@ -8,7 +9,10 @@ from django.urls import reverse
 from django import forms
 from django.contrib.auth.decorators import login_required
 from .models import Listing, Bid, Category
+from django.conf import settings
 from PIL import Image  # Import Pillow
+import uuid
+import os
 
 
 
@@ -95,6 +99,7 @@ def new_listing(request):
             "form": New_Listing_Form()
         })
     elif request.method == "POST":
+        user = request.user
         form = New_Listing_Form(request.POST, request.FILES)
         if form.is_valid():
             cleaned_data = form.cleaned_data
@@ -123,6 +128,30 @@ def new_listing(request):
                 desired_size = (400, 400)  # Set your desired size here
                 img.thumbnail(desired_size)
                 img.save(new_listing.image.path)
+
+                larger_img = img.resize((500, 500))  # Set the larger size here
+                
+                # Generate a unique identifier
+                unique_id = uuid.uuid4().hex
+                
+                # Create filenames for normal and larger images with the unique identifier
+                normal_image_filename = f"normal_{unique_id}.jpg"
+                larger_image_filename = f"larger_{unique_id}.jpg"
+                
+                normal_image_path = os.path.join(settings.MEDIA_ROOT, 'listing_images', 'normal', normal_image_filename)
+                larger_image_path = os.path.join(settings.MEDIA_ROOT, 'listing_images', 'larger', larger_image_filename)
+                
+                # Save images with the unique filenames
+                img.save(normal_image_path)
+                larger_img.save(larger_image_path)
+                
+                # Set the paths as attributes of the new_listing model
+                new_listing.normal_image = os.path.join('listing_images', 'normal', normal_image_filename)
+                new_listing.larger_image = os.path.join('listing_images', 'larger', larger_image_filename)
+                new_listing.save()
+            
+            user.watchlist.add(new_listing)
+            user.save()
             
             # Redirect to a success page or the new listing's detail page
             return HttpResponseRedirect(reverse("listing", args=[new_listing.pk]))

@@ -5,42 +5,42 @@
 
     <div class= "container-fluid">
         {% for listing in listings %}
-        {%if not listing.closed %}
-        <div class = "row mb-3 border p-3">
-            <div class = "col">
-                <img src="{{listing.image.url}}" alt="">
-            </div>
-            <div class="col">
+            {%if not listing.closed %}
+                <div class = "row mb-3 border p-3">
+                    <div class = "col">
+                        <img src="{{listing.image.url}}" alt="">
+                    </div>
+                    <div class="col">
 
-                <a href="{%url 'listing' listing_id=listing.id %}"><h4> {{listing.title}} </h4></a>
-                {% if listing.winning_bid %}
-                    <h6>Highest Bid: ${{ listing.winning_bid.amount }}</h5>
-                {% else %}
-                    <h6>Starting Price: ${{ listing.price }}</h5>
+                        <a href="{%url 'listing' listing_id=listing.id %}"><h4> {{listing.title}} </h4></a>
+                        {% if listing.winning_bid %}
+                            <h6>Highest Bid: ${{ listing.winning_bid.amount }}</h5>
+                        {% else %}
+                            <h6>Starting Price: ${{ listing.price }}</h5>
+                        {% endif %}
+                        
+                        <p>{{ listing.description|truncatechars:128 }}</p>
+                        <p class="small"><em>{{listing.created_at}}.</em></p>
+                    </div>
+                    
+                {% if user.is_authenticated %}
+                    <div class="col">
+                        <div class="py-5">
+                            <div class="mb-2">
+                                <button class="btn btn-outline-primary btn-block">Add to Watchlist</button>
+                            </div>
+                            <div class="mb-2">
+                                <button class="btn btn-outline-info btn-block">Comment</button>
+                            </div>
+                            <div>
+                                <button class="btn btn-outline-danger btn-block">Like</button>
+                            </div>
+
+                        </div>
+                    </div>
+            
                 {% endif %}
-                
-                <p>{{ listing.description|truncatechars:128 }}</p>
-                <p class="small"><em>{{listing.created_at}}.</em></p>
-            </div>
-            
-            {% if user.is_authenticated %}
-            <div class="col">
-                <div class="py-5">
-                    <div class="mb-2">
-                        <button class="btn btn-outline-primary btn-block">Add to Watchlist</button>
-                    </div>
-                    <div class="mb-2">
-                        <button class="btn btn-outline-info btn-block">Comment</button>
-                    </div>
-                    <div>
-                        <button class="btn btn-outline-danger btn-block">Like</button>
-                    </div>
-
-                </div>
-            </div>
-            
-            {% endif %}
-        {%endif%}    
+            {%endif%}    
         </div>
         {% endfor %}
     </div>

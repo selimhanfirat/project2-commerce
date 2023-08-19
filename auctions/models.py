@@ -11,7 +11,8 @@ class Listing(models.Model):
     title = models.CharField(max_length=255)
     description = models.CharField(max_length = 512)
     price = models.IntegerField()
-    image = models.ImageField(upload_to='listing_images')
+    image = models.ImageField(upload_to='listing_images/normal')
+    larger_image = models.ImageField(upload_to = "listing_images/larger", null=True, blank=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name = "listings")
     created_at = models.DateTimeField(auto_now_add=True)
     closed = models.BooleanField(default = False)
@@ -26,9 +27,7 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
-    
-    
- 
+     
     
 
 class Bid(models.Model):
