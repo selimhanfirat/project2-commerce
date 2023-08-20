@@ -1,9 +1,35 @@
 {% extends "auctions/layout.html" %}
 
 {% block body %}
+    <div class="container">
+        <h2 class="my-4">Your Watchlist</h2>
 
-    {% for listing in watchlist %}
-        {{listing.title}}
-        <br>
-    {%endfor%}
+        {% if watchlist %}
+            <div class="row">
+                {% for listing in watchlist %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card">
+                            <img src="{{ listing.image.url }}" class="card-img-top" alt="{{ listing.title }}">
+                            <div class="card-body">
+                                <a href = {% url 'listing' listing.id%}><h5 class="card-title">{{ listing.title }}</h5></a>
+                                {% if listing.winning_bid %}
+                                    <p class="card-text text-success">Highest Bid: ${{ listing.winning_bid.amount }}</p>
+                                {% else %}
+                                    <p class="card-text text-primary">Starting Price: ${{ listing.price }}</p>
+                                {% endif %}
+                                <p class="card-text">{{ listing.description|truncatechars:80 }}</p>
+                                <a href="{% url 'listing' listing_id=listing.id %}" class="btn btn-outline-primary btn-sm btn-block">View Listing</a>
+                                <form action="{% url 'remove_from_watchlist' listing.id %}" method="post" class="mt-2">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm btn-block">Remove from Watchlist</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Your watchlist is empty.</p>
+        {% endif %}
+    </div>
 {% endblock %}

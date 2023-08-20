@@ -27,7 +27,11 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
-     
+
+DEFAULT_CATEGORIES = ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports', 'Toys']
+
+for category_name in DEFAULT_CATEGORIES:
+    Category.objects.get_or_create(name=category_name)
     
 
 class Bid(models.Model):

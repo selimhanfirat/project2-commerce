@@ -8,14 +8,12 @@ from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django import forms
 from django.contrib.auth.decorators import login_required
-from .models import Listing, Bid, Category
+from .models import Listing, Bid, Category, Comment
 from django.conf import settings
 from PIL import Image  # Import Pillow
 import uuid
 import os
-
-
-
+from django.core.files.storage import default_storage
 from .models import User
 
 class New_Listing_Form(forms.Form):
@@ -32,10 +30,11 @@ class New_Listing_Form(forms.Form):
 
 
 def index(request):
-    listings = Listing.objects.all
-    return render(request, "auctions/index.html",{
-        "listings": listings 
+    active_listings = Listing.objects.filter(closed=False)
+    return render(request, "auctions/index.html", {
+        "active_listings": active_listings,
     })
+
 
 
 def login_view(request):
@@ -119,8 +118,13 @@ def new_listing(request):
                 price=price,
                 image=image,
                 owner=owner,
-                created_at=datetime.now()  # Set the current time
+                created_at=datetime.now(),  # Set the current time
             )
+            
+            for category in form.cleaned_data["categories"]:
+                new_listing.categories.add(category)
+            new_listing.save()
+
             
             # Resize the uploaded image using Pillow
             if new_listing.image:
@@ -138,16 +142,25 @@ def new_listing(request):
                 normal_image_filename = f"normal_{unique_id}.jpg"
                 larger_image_filename = f"larger_{unique_id}.jpg"
                 
+                # Create filenames for normal and larger images with the unique identifier
+                normal_image_filename = f"normal_{unique_id}.jpg"
+                larger_image_filename = f"larger_{unique_id}.jpg"
+
                 normal_image_path = os.path.join(settings.MEDIA_ROOT, 'listing_images', 'normal', normal_image_filename)
                 larger_image_path = os.path.join(settings.MEDIA_ROOT, 'listing_images', 'larger', larger_image_filename)
-                
+
                 # Save images with the unique filenames
                 img.save(normal_image_path)
                 larger_img.save(larger_image_path)
-                
-                # Set the paths as attributes of the new_listing model
-                new_listing.normal_image = os.path.join('listing_images', 'normal', normal_image_filename)
+
+                # Delete the original image
+                default_storage.delete(new_listing.image.path)
+
+                # Update the ImageField instances with the new filenames
+                new_listing.image = os.path.join('listing_images', 'normal', normal_image_filename)
                 new_listing.larger_image = os.path.join('listing_images', 'larger', larger_image_filename)
+
+                # Save the new_listing object with the updated image fields
                 new_listing.save()
             
             user.watchlist.add(new_listing)
@@ -159,6 +172,7 @@ def new_listing(request):
     return render(request, "auctions/new_listing.html", {
         "form": form
     })
+
 
             
 def listing(request, listing_id):
@@ -233,16 +247,59 @@ def listing_close(request, listing_id):
         return HttpResponseRedirect(reverse('listing', args=[listing.id]))
 
 
+def remove_from_watchlist(request, listing_id):
+    if request.method == "POST":
+        listing = Listing.objects.get(pk=listing_id)
+        user = request.user
+
+        if listing in user.watchlist.all():
+            user.watchlist.remove(listing)
+            user.save()
+
+    return HttpResponseRedirect(reverse('watchlist', args=[user.id]))
+
+def category_listings(request, category_name):
+    category = get_object_or_404(Category, name=category_name)
+    listings = Listing.objects.filter(categories=category, closed=False)
+    
+    return render(request, "auctions/category_listings.html", {
+        "category": category,
+        "listings": listings
+    })
+    
+def comment(request, listing_id):
+    if request.method == "POST":
+        text = request.POST["text"]
+        user = request.user
+        listing = Listing.objects.get(pk=listing_id)
+        new_comment = Comment.objects.create(
+            text=text,
+            author=user,
+            listing=listing,
+            created_at=datetime.now()  # Set the current time
+        )
+        return HttpResponseRedirect(reverse("listing", args=[listing_id]))
+
+    # Handle the GET request
+    listing = Listing.objects.get(pk=listing_id)
+    return render(request, "auctions/listing.html", {
+        "listing": listing
+    })
 
             
+    
 
 def delete(request):
-    # Retrieve all listings from the database
-    listings = Listing.objects.all()
+    # Delete all listings from the database
+    Listing.objects.all().delete()
 
-
-    for listing in listings:
-        listing.delete()
+    # Delete all files in the media directory except the directories
+    media_root = settings.MEDIA_ROOT
+    for root, dirs, files in os.walk(media_root):
+        for file in files:
+            file_path = os.path.join(root, file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
 
     # Redirect to a relevant page after deletion
-    return HttpResponseRedirect(reverse("index")) 
+    return HttpResponseRedirect(reverse("index"))
